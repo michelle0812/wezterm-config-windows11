@@ -1,4 +1,4 @@
-# wezterm-config-windows11 一鍵安裝腳本（需先手動完成 git/gh 安裝與登入，見 README.md）
+﻿# wezterm-config-windows11 一鍵安裝腳本（需先手動完成 git/gh 安裝與登入，見 README.md）
 # 用法：在 clone 好這個 repo 之後，於 repo 根目錄執行 .\install.ps1
 $ErrorActionPreference = "Stop"
 

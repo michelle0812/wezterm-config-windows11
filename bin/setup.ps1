@@ -1,4 +1,4 @@
-# Windows 安裝腳本：把 ~/.wezterm.lua symlink 到這個 repo 的 loader.lua
+﻿# Windows 安裝腳本：把 ~/.wezterm.lua symlink 到這個 repo 的 loader.lua
 $RepoDir = Split-Path -Parent $PSScriptRoot
 $Target = "$env:USERPROFILE\.wezterm.lua"
 $Source = "$RepoDir\loader.lua"

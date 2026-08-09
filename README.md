@@ -1,22 +1,54 @@
 # wezterm-config-windows11
 
 UncleSam 的 Windows 11 終端機環境設定備份（WezTerm + Windows Terminal / PowerShell）。
-這份說明是寫給 AI agent（例如 Claude Code）在一台全新的 Windows 11 機器上讀取後，依序執行安裝用的。
+
+## 一鍵安裝
+
+在全新的 Windows 11 機器上，開一個 PowerShell 視窗，貼上這行執行即可（會跳出一次 UAC 視窗要求系統管理員權限，用來建立 symlink）：
+
+```powershell
+irm https://raw.githubusercontent.com/michelle0812/wezterm-config-windows11/main/bootstrap.ps1 | iex
+```
+
+這會自動依序完成：確認/安裝 Node.js、Claude Code、git、GitHub CLI（已安裝的會略過）→ clone 這個 repo 到 `~/.wezterm` → 安裝 WezTerm → 套用 WezTerm / Windows Terminal 設定。完成後重新開啟 WezTerm 或 Windows Terminal 就可以看到效果。
+
+下面是每個步驟的詳細說明（`bootstrap.ps1` 背後其實就是照這個順序做），也是寫給 AI agent（例如 Claude Code）在需要手動介入或除錯時參考用的。
 
 ## 給 AI 的安裝順序
 
 以下步驟請照順序執行。**步驟 1 和步驟 2 需要人類在場**完成瀏覽器授權，不能單靠腳本自動完成；其餘步驟都能自動化。
 
-### 步驟 1：安裝 git 與 GitHub CLI（因為這是 private repo，必須先有這兩個工具才能 clone）
+### 步驟 1：確認 / 安裝 Node.js、Claude Code、git 與 GitHub CLI
+
+Node.js、Claude Code 是為了讓 AI agent 本身能在這台機器上跑起來；git、GitHub CLI 則是因為這是 private repo，必須先有這兩個工具才能 clone。每一項都先判斷是否已安裝，沒有才安裝，避免重複安裝。
 
 ```powershell
-winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements
-winget install --id GitHub.cli -e --source winget --accept-package-agreements --accept-source-agreements
+# Node.js
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+    winget install --id OpenJS.NodeJS.LTS -e --source winget --accept-package-agreements --accept-source-agreements
+}
+
+# Claude Code（需要先有 Node.js/npm；如果上一步剛裝完 Node.js，請先開新終端機視窗再執行這段，讓 PATH 生效）
+if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+    npm install -g @anthropic-ai/claude-code
+}
+
+# git
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements
+}
+
+# GitHub CLI
+if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+    winget install --id GitHub.cli -e --source winget --accept-package-agreements --accept-source-agreements
+}
 ```
 
 裝完後**開一個新的終端機視窗**（舊視窗的 PATH 不會自動更新），確認：
 
 ```powershell
+node --version
+claude --version
 git --version
 gh --version
 ```
@@ -66,7 +98,8 @@ cd "$env:USERPROFILE\.wezterm"
 
 ```
 .wezterm/
-├── install.ps1                    -- 一鍵安裝腳本（步驟 4 用這個）
+├── bootstrap.ps1                  -- 全自動一鍵安裝腳本（裝好 Node.js/Claude Code/git/gh，clone 好之後自動接著跑 install.ps1）
+├── install.ps1                    -- WezTerm/設定安裝腳本（步驟 4 用這個，也會被 bootstrap.ps1 自動呼叫）
 ├── loader.lua                     -- 依平台載入對應設定，會被 symlink 成 ~/.wezterm.lua
 ├── common.lua                     -- 跨平台共用設定（1984 Dark 配色 + 透明度）
 ├── windows/wezterm.lua            -- Windows 版 WezTerm 設定

@@ -1,4 +1,4 @@
-# 把透明度 + Ctrl+T / Ctrl+W / Ctrl+1~9 快捷鍵合併進 Windows Terminal 的 Windows PowerShell profile
+﻿# 把透明度 + Ctrl+T / Ctrl+W / Ctrl+1~9 快捷鍵合併進 Windows Terminal 的 Windows PowerShell profile
 # 只會修改需要的欄位，不會整份覆蓋，執行多次結果一樣（idempotent）
 $ErrorActionPreference = "Stop"
 
