@@ -62,10 +62,19 @@ Write-Host "===== Step 4/6：確認 GitHub CLI ====="
 Ensure-WingetPackage -Id "GitHub.cli" -CheckCommand "gh"
 
 Write-Host "===== Step 5/6：取得設定檔 ====="
-if (Test-Path $TargetDir) {
-	Write-Host "==> $TargetDir 已存在，改用 git pull 更新"
+if (Test-Path (Join-Path $TargetDir ".git")) {
+	Write-Host "==> $TargetDir 已經是 git repo，執行 git pull 更新"
 	Push-Location $TargetDir
 	git pull
+	Pop-Location
+} elseif (Test-Path $TargetDir) {
+	Write-Host "==> $TargetDir 已存在但不是 git repo，接上遠端並強制同步成最新版本"
+	Push-Location $TargetDir
+	git init
+	git remote remove origin 2>$null
+	git remote add origin $RepoUrl
+	git fetch origin main
+	git reset --hard origin/main
 	Pop-Location
 } else {
 	Write-Host "==> Clone 到 $TargetDir"
