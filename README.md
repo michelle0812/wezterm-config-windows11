@@ -76,7 +76,7 @@ git clone https://github.com/michelle0812/wezterm-config-windows11.git "$env:USE
 
 ### 步驟 4：執行安裝腳本
 
-會自動安裝 WezTerm、套用 WezTerm 設定（symlink `~/.wezterm.lua`）、套用 Windows Terminal / PowerShell 的透明度與快捷鍵設定。
+會自動安裝 WezTerm、套用 WezTerm 設定（symlink `~/.wezterm.lua`）、套用 Windows Terminal / PowerShell 的透明度與快捷鍵設定，並修正開始選單「Windows PowerShell」捷徑以系統管理員身分執行時會跑到 `C:\Windows\System32` 的問題。
 
 ```powershell
 cd "$env:USERPROFILE\.wezterm"
@@ -95,6 +95,7 @@ wezterm --version
 
 - 開 WezTerm：背景應該是透明的（`window_background_opacity = 0.9`），`Ctrl+T`/`Ctrl+W`/`Ctrl+1~9` 應該能開新分頁/關閉分頁/切換分頁
 - 開 Windows Terminal 的 PowerShell profile：背景也應該是透明的，一樣有 `Ctrl+T`/`Ctrl+W`/`Ctrl+1~9`
+- 從開始選單搜尋 PowerShell，右鍵選「以系統管理員身分執行」：應該直接進入使用者資料夾（`C:\Users\<你的帳號>`），而不是 `C:\Windows\System32`
 
 ## 反安裝 / 重新安裝
 
@@ -137,5 +138,5 @@ cd "$env:USERPROFILE\.wezterm"
 └── bin/
     ├── setup.ps1                  -- symlink ~/.wezterm.lua -> loader.lua
     ├── setup.sh                   -- macOS 版 symlink 腳本
-    └── setup-windows-terminal.ps1 -- 合併 Windows Terminal 的透明度/快捷鍵設定
+    └── setup-windows-terminal.ps1 -- 合併 Windows Terminal 的透明度/快捷鍵設定，並修正開始選單 PowerShell 捷徑的起始位置
 ```

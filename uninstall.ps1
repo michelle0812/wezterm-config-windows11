@@ -49,6 +49,23 @@ foreach ($settingsPath in $WtSettingsPaths) {
 	}
 }
 
+Write-Host "===== 還原開始選單「Windows PowerShell」捷徑的起始位置 ====="
+$startMenuShortcuts = @(
+	"$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Windows PowerShell\Windows PowerShell.lnk",
+	"$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Windows PowerShell\Windows PowerShell (x86).lnk"
+)
+$wshShell = New-Object -ComObject WScript.Shell
+foreach ($shortcutPath in $startMenuShortcuts) {
+	if (Test-Path $shortcutPath) {
+		$shortcut = $wshShell.CreateShortcut($shortcutPath)
+		if ($shortcut.WorkingDirectory) {
+			$shortcut.WorkingDirectory = ""
+			$shortcut.Save()
+			Write-Host "==> 已清空起始位置: $shortcutPath"
+		}
+	}
+}
+
 Write-Host "===== 移除 symlink ~/.wezterm.lua ====="
 if (Test-Path $TargetLua) {
 	Remove-Item $TargetLua -Force

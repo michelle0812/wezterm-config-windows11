@@ -1,4 +1,5 @@
-﻿# 把透明度 + Ctrl+T / Ctrl+W / Ctrl+1~9 快捷鍵合併進 Windows Terminal 的 Windows PowerShell profile
+﻿# 1) 把透明度 + Ctrl+T / Ctrl+W / Ctrl+1~9 快捷鍵合併進 Windows Terminal 的 Windows PowerShell profile
+# 2) 修正開始選單「Windows PowerShell」捷徑以系統管理員身分執行時會跑到 C:\Windows\System32 的問題
 # 只會修改需要的欄位，不會整份覆蓋，執行多次結果一樣（idempotent）
 $ErrorActionPreference = "Stop"
 
@@ -56,3 +57,22 @@ $json.keybindings = $keybindings
 
 $json | ConvertTo-Json -Depth 30 | Set-Content -Path $settingsPath -Encoding utf8
 Write-Host "Windows Terminal 設定已更新：$settingsPath"
+
+# 3) 開始選單「Windows PowerShell」捷徑預設沒有設定「起始位置」，一般直接開啟時會沿用總管的路徑，
+#    但透過 UAC「以系統管理員身分執行」時系統找不到指定路徑，會退回系統目錄 C:\Windows\System32。
+#    明確指定起始位置為使用者資料夾即可讓兩種開啟方式的行為一致。
+$startMenuShortcuts = @(
+	"$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Windows PowerShell\Windows PowerShell.lnk",
+	"$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Windows PowerShell\Windows PowerShell (x86).lnk"
+)
+$wshShell = New-Object -ComObject WScript.Shell
+foreach ($shortcutPath in $startMenuShortcuts) {
+	if (Test-Path $shortcutPath) {
+		$shortcut = $wshShell.CreateShortcut($shortcutPath)
+		if ($shortcut.WorkingDirectory -ne $env:USERPROFILE) {
+			$shortcut.WorkingDirectory = $env:USERPROFILE
+			$shortcut.Save()
+			Write-Host "已修正起始位置: $shortcutPath -> $env:USERPROFILE"
+		}
+	}
+}
