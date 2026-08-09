@@ -4,7 +4,7 @@ UncleSam 的 Windows 11 終端機環境設定備份（WezTerm + Windows Terminal
 
 ## 一鍵安裝
 
-在全新的 Windows 11 機器上，開一個 PowerShell 視窗，貼上這行執行即可（會跳出一次 UAC 視窗要求系統管理員權限，用來建立 symlink）：
+在全新的 Windows 11 機器上，開一個 PowerShell 視窗，貼上這行執行即可（會跳出一次 UAC 視窗要求系統管理員權限，用來建立 symlink；同意後會另外開一個新的系統管理員視窗接手執行，原本這個視窗可以留著不用管）：
 
 ```powershell
 irm https://raw.githubusercontent.com/michelle0812/wezterm-config-windows11/main/bootstrap.ps1 | iex
@@ -113,7 +113,7 @@ Tabby 沒有指令列工具可以驗證版本，改用「設定」-「應用程�
 
 ## 反安裝 / 重新安裝
 
-如果裝壞了，或想清乾淨重新測試一鍵安裝流程，用 `uninstall.ps1`。這個腳本**一律做完整反安裝**：不只還原 WezTerm / Windows Terminal / Tabby 設定、刪掉 `~/.wezterm` 與 symlink，還會連同 `bootstrap.ps1` 裝的 Node.js / Claude Code / git / GitHub CLI / WezTerm / Tabby 一起解除安裝，還原到接近全新機器的狀態（需要系統管理員權限，沒有的話腳本會自動跳 UAC 視窗要求）：
+如果裝壞了，或想清乾淨重新測試一鍵安裝流程，用 `uninstall.ps1`。這個腳本**一律做完整反安裝**：不只還原 WezTerm / Windows Terminal / Tabby 設定、刪掉 `~/.wezterm` 與 symlink，還會連同 `bootstrap.ps1` 裝的 Node.js / Claude Code / git / GitHub CLI / WezTerm / Tabby 一起解除安裝，還原到接近全新機器的狀態（需要系統管理員權限，沒有的話腳本會自動跳 UAC 視窗、開一個新的系統管理員視窗接手執行，原本這個視窗可以留著不用管）：
 
 ```powershell
 cd "$env:USERPROFILE\.wezterm"
