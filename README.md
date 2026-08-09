@@ -88,6 +88,26 @@ cd "$env:USERPROFILE\.wezterm"
 - 開 WezTerm：背景應該是透明的（`window_background_opacity = 0.9`），`Ctrl+T`/`Ctrl+W`/`Ctrl+1~9` 應該能開新分頁/關閉分頁/切換分頁
 - 開 Windows Terminal 的 PowerShell profile：背景也應該是透明的，一樣有 `Ctrl+T`/`Ctrl+W`/`Ctrl+1~9`
 
+## 反安裝 / 重新安裝
+
+如果裝壞了，或想清乾淨重新測試一鍵安裝流程，用 `uninstall.ps1`：
+
+```powershell
+cd "$env:USERPROFILE\.wezterm"
+
+# 只還原 WezTerm / Windows Terminal 設定、刪掉 ~/.wezterm 與 symlink
+# 保留 Node.js / Claude Code / git / GitHub CLI / WezTerm 本身
+.\uninstall.ps1
+
+# 連同 bootstrap.ps1 裝的 Node.js / Claude Code / git / GitHub CLI / WezTerm
+# 一起解除安裝，還原到接近全新機器的狀態
+.\uninstall.ps1 -Full
+```
+
+清完之後，直接重跑一鍵安裝那行指令（見最上方）即可從頭再測一次。
+
+**注意**：`-Full` 會移除 git / gh / Node.js 這類通用開發工具，如果這台機器上還有其他專案依賴它們，不要用 `-Full`；另外 winget 解除安裝不保證清掉所有使用者層級的殘留設定/快取，要 100% 乾淨最保險的方式還是用全新的 VM 或映像檔測試。
+
 ## 已知限制
 
 - **symlink 權限**：`bin/setup.ps1` 會用 `New-Item -ItemType SymbolicLink` 建立 `~/.wezterm.lua`，這在 Windows 上預設需要系統管理員權限，除非該台電腦已經開啟「設定 → 隱私權與安全性 → 開發人員模式」。如果遇到權限錯誤，開發人員模式或用系統管理員身分重跑 `install.ps1` 即可。
@@ -100,6 +120,7 @@ cd "$env:USERPROFILE\.wezterm"
 .wezterm/
 ├── bootstrap.ps1                  -- 全自動一鍵安裝腳本（裝好 Node.js/Claude Code/git/gh，clone 好之後自動接著跑 install.ps1）
 ├── install.ps1                    -- WezTerm/設定安裝腳本（步驟 4 用這個，也會被 bootstrap.ps1 自動呼叫）
+├── uninstall.ps1                  -- 反安裝腳本（清掉設定，加 -Full 連同裝的工具一起移除）
 ├── loader.lua                     -- 依平台載入對應設定，會被 symlink 成 ~/.wezterm.lua
 ├── common.lua                     -- 跨平台共用設定（1984 Dark 配色 + 透明度）
 ├── windows/wezterm.lua            -- Windows 版 WezTerm 設定
