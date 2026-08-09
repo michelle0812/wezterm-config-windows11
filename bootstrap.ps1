@@ -32,14 +32,16 @@ if (-not $isAdmin) {
 }
 
 # Record the full console output to $HOME so the install history can be reviewed later.
-# install.ps1 (invoked in Step 6 below) tries to start its own transcript too; since a
-# transcript is already running by then, that attempt no-ops and this one keeps logging
-# everything through to the end.
+# install.ps1 (invoked in Step 6 below) checks WEZTERM_LOG_ACTIVE and skips starting its
+# own transcript when it's already set, so the whole bootstrap + install run ends up as a
+# single log instead of two overlapping ones (Start-Transcript does not error out when
+# called while one is already active, it just quietly starts a second, independent one).
 $WeztermLogStartedHere = $false
 $LogPath = Join-Path $env:USERPROFILE ("wezterm-install-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
 try {
 	Start-Transcript -Path $LogPath -Append -ErrorAction Stop | Out-Null
 	$WeztermLogStartedHere = $true
+	$env:WEZTERM_LOG_ACTIVE = "1"
 	Write-Host "==> Logging full output to $LogPath"
 } catch {}
 
@@ -110,5 +112,6 @@ try {
 } finally {
 	if ($WeztermLogStartedHere) {
 		Stop-Transcript | Out-Null
+		Remove-Item Env:\WEZTERM_LOG_ACTIVE -ErrorAction SilentlyContinue
 	}
 }
