@@ -17,17 +17,30 @@
 #
 # Creating the symlink requires administrator rights, so this script relaunches
 # itself elevated first (one UAC prompt).
+#
+# Logging is opt-in and off by default. Since this script is normally run via
+# "irm ... | iex" (a plain expression, not a parameterized script invocation),
+# a -Log switch parameter would not be reachable from that one-liner, so the
+# opt-in is done through an env var instead:
+#   $env:WEZTERM_LOG = "1"; irm https://raw.githubusercontent.com/michelle0812/wezterm-config-windows11/main/bootstrap.ps1 | iex
+# Running this file locally after cloning also accepts a real -Log switch.
+
+param(
+	[switch]$Log
+)
 
 $ErrorActionPreference = "Stop"
 
 $RepoUrl = "https://github.com/michelle0812/wezterm-config-windows11.git"
 $BootstrapUrl = "https://raw.githubusercontent.com/michelle0812/wezterm-config-windows11/main/bootstrap.ps1"
 $TargetDir = "$env:USERPROFILE\.wezterm"
+$ShouldLog = $Log -or ($env:WEZTERM_LOG -eq "1")
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
 	Write-Host "==> Administrator rights are required to create the symlink. Relaunching elevated (approve the UAC prompt)..."
-	Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "irm $BootstrapUrl | iex"
+	$relaunchCommand = if ($ShouldLog) { "`$env:WEZTERM_LOG='1'; irm $BootstrapUrl | iex" } else { "irm $BootstrapUrl | iex" }
+	Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $relaunchCommand
 	Write-Host "==> Continuing in the new elevated window; this one is done and can stay open."
 	return
 }
@@ -38,13 +51,15 @@ if (-not $isAdmin) {
 # single log instead of two overlapping ones (Start-Transcript does not error out when
 # called while one is already active, it just quietly starts a second, independent one).
 $WeztermLogStartedHere = $false
-$LogPath = Join-Path $env:USERPROFILE ("wezterm-install-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
-try {
-	Start-Transcript -Path $LogPath -Append -ErrorAction Stop | Out-Null
-	$WeztermLogStartedHere = $true
-	$env:WEZTERM_LOG_ACTIVE = "1"
-	Write-Host "==> Logging full output to $LogPath"
-} catch {}
+if ($ShouldLog) {
+	$LogPath = Join-Path $env:USERPROFILE ("wezterm-install-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
+	try {
+		Start-Transcript -Path $LogPath -Append -ErrorAction Stop | Out-Null
+		$WeztermLogStartedHere = $true
+		$env:WEZTERM_LOG_ACTIVE = "1"
+		Write-Host "==> Logging full output to $LogPath"
+	} catch {}
+}
 
 try {
 	function Refresh-Path {
@@ -106,7 +121,7 @@ try {
 	}
 
 	Write-Host "===== Step 6/6: Apply WezTerm / Windows Terminal settings ====="
-	& "$TargetDir\install.ps1"
+	& "$TargetDir\install.ps1" -Log:$ShouldLog
 
 	Write-Host ""
 	Write-Host "===== All done! Reopen WezTerm / Windows Terminal to see the changes ====="
@@ -114,5 +129,9 @@ try {
 	if ($WeztermLogStartedHere) {
 		Stop-Transcript | Out-Null
 		Remove-Item Env:\WEZTERM_LOG_ACTIVE -ErrorAction SilentlyContinue
+		$logFile = Get-Item $LogPath -ErrorAction SilentlyContinue
+		if (-not $logFile -or $logFile.Length -lt 200) {
+			Write-Warning "Log file $LogPath looks empty or incomplete; this run's log may be lost (the install itself is unaffected)"
+		}
 	}
 }

@@ -102,12 +102,25 @@ Tabby 沒有指令列工具可以驗證版本，改用「設定」-「應用程�
 
 ## 安裝歷程紀錄
 
-`bootstrap.ps1`（一鍵安裝）、`install.ps1`、`uninstall.ps1` 都會用 `Start-Transcript` 把完整的終端機輸出記錄下來，存到 `$HOME` 底下，檔名帶時間戳記，不會互相覆蓋：
+`bootstrap.ps1`（一鍵安裝）、`install.ps1`、`uninstall.ps1` 都支援用 `Start-Transcript` 把完整的終端機輸出記錄下來，存到 `$HOME` 底下，檔名帶時間戳記，不會互相覆蓋。**預設不記錄**，要加上 `-Log` 才會產生：
+
+```powershell
+.\install.ps1 -Log
+.\uninstall.ps1 -Log
+```
 
 - 安裝：`~\wezterm-install-yyyyMMdd-HHmmss.log`
 - 反安裝：`~\wezterm-uninstall-yyyyMMdd-HHmmss.log`
 
-透過 `bootstrap.ps1` 跑一鍵安裝時，`install.ps1` 是被 `bootstrap.ps1` 呼叫的，兩者共用同一份 `wezterm-install-*.log`（`install.ps1` 偵測到 transcript 已經在跑就不會另外開一份）；直接單獨執行 `install.ps1` 才會產生自己的 log。
+`bootstrap.ps1` 是用 `irm ... | iex` 貼上執行的，這種呼叫方式沒辦法直接帶 `-Log` 參數，改用環境變數達到一樣的效果：
+
+```powershell
+$env:WEZTERM_LOG = "1"; irm https://raw.githubusercontent.com/michelle0812/wezterm-config-windows11/main/bootstrap.ps1 | iex
+```
+
+透過 `bootstrap.ps1` 跑一鍵安裝並開啟記錄時，`install.ps1` 是被 `bootstrap.ps1` 呼叫的，兩者共用同一份 `wezterm-install-*.log`（`install.ps1` 偵測到外層已經在記錄就不會另外開一份）；直接單獨執行 `install.ps1 -Log` 才會產生自己的 log。
+
+寫完 log 之後腳本會檢查檔案大小，如果小到看起來像是寫入不完整（例如視窗被中途關掉），會跳 `Write-Warning` 提醒，但不影響安裝/反安裝本身的正確性。
 
 ## 反安裝 / 重新安裝
 
