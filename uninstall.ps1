@@ -52,8 +52,16 @@ Get-ChildItem "$env:USERPROFILE" -Filter ".wezterm.lua.bak.*" -Force -ErrorActio
 
 Write-Host "===== 刪除 clone 的 repo (~/.wezterm) ====="
 if (Test-Path $TargetDir) {
-	Remove-Item $TargetDir -Recurse -Force
-	Write-Host "==> 已刪除 $TargetDir"
+	if ((Get-Location).Path -like "$TargetDir*") {
+		Write-Host "==> 目前所在目錄在 $TargetDir 裡面，Windows 無法刪除正在使用中的資料夾，先切換到 $env:USERPROFILE"
+		Set-Location $env:USERPROFILE
+	}
+	Remove-Item $TargetDir -Recurse -Force -ErrorAction SilentlyContinue
+	if (Test-Path $TargetDir) {
+		Write-Warning "刪除 $TargetDir 失敗，請關閉所有還開著這個資料夾的視窗/終端機後手動刪除"
+	} else {
+		Write-Host "==> 已刪除 $TargetDir"
+	}
 } else {
 	Write-Host "==> $TargetDir 不存在，略過"
 }
@@ -63,25 +71,25 @@ if ($Full) {
 	Write-Host "===== -Full：解除安裝 bootstrap.ps1 裝的工具 ====="
 
 	Write-Host "-- WezTerm --"
-	winget uninstall --id wez.wezterm -e --silent 2>$null
+	winget uninstall --id wez.wezterm -e --silent --accept-source-agreements
 	Remove-Item "$env:LOCALAPPDATA\wezterm" -Recurse -Force -ErrorAction SilentlyContinue
 
 	Write-Host "-- Claude Code (npm 套件) --"
 	if (Get-Command npm -ErrorAction SilentlyContinue) {
-		npm uninstall -g @anthropic-ai/claude-code 2>$null
+		npm uninstall -g @anthropic-ai/claude-code
 	}
 
 	Write-Host "-- GitHub CLI（先登出再解除安裝）--"
 	if (Get-Command gh -ErrorAction SilentlyContinue) {
 		gh auth logout --hostname github.com 2>$null
 	}
-	winget uninstall --id GitHub.cli -e --silent 2>$null
+	winget uninstall --id GitHub.cli -e --silent --accept-source-agreements
 
 	Write-Host "-- git --"
-	winget uninstall --id Git.Git -e --silent 2>$null
+	winget uninstall --id Git.Git -e --silent --accept-source-agreements
 
 	Write-Host "-- Node.js --"
-	winget uninstall --id OpenJS.NodeJS.LTS -e --silent 2>$null
+	winget uninstall --id OpenJS.NodeJS.LTS -e --silent --accept-source-agreements
 
 	Write-Host ""
 	Write-Host "===== 完成，已還原成接近全新機器的狀態 ====="
