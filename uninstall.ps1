@@ -13,6 +13,15 @@ param(
 	[switch]$Full
 )
 
+if ($Full) {
+	$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+	if (-not $isAdmin) {
+		Write-Host "==> -Full 需要系統管理員權限才能解除安裝 GitHub CLI / Node.js 這類系統層級套件，重新以系統管理員身分啟動中...（請在跳出的 UAC 視窗按「是」）"
+		Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $MyInvocation.MyCommand.Path, "-Full"
+		exit
+	}
+}
+
 $ErrorActionPreference = "Continue"
 
 $TargetLua = "$env:USERPROFILE\.wezterm.lua"
