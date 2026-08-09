@@ -1,14 +1,22 @@
-﻿# wezterm-config-windows11 一鍵安裝腳本
-# 用法（在全新的 Windows 11 機器上，開一個 PowerShell 視窗貼上這行執行）：
+# wezterm-config-windows11 one-click bootstrap script
+# Usage (on a fresh Windows 11 machine, open PowerShell and paste this line):
 #
 #   irm https://raw.githubusercontent.com/michelle0812/wezterm-config-windows11/main/bootstrap.ps1 | iex
 #
-# 會自動：
-#   1. 確認/安裝 Node.js、Claude Code、git、GitHub CLI（已安裝的會自動略過）
-#   2. Clone（或更新）這個 repo 到 ~/.wezterm
-#   3. 執行 install.ps1，安裝 WezTerm、套用 WezTerm / Windows Terminal 設定
+# This script must stay plain ASCII (no non-English characters, no BOM).
+# It is fetched over HTTP via Invoke-RestMethod and piped into Invoke-Expression;
+# Windows PowerShell 5.1 leaves a leading UTF-8 BOM character in that string,
+# which breaks script parsing when a BOM-prefixed file is used here. Every other
+# script in this repo is only ever run as a local file (after git clone), so it
+# keeps a BOM + Chinese text for correct parsing there instead.
 #
-# 因為建立 symlink 需要系統管理員權限，這支腳本一開始會自動用系統管理員身分重新啟動自己（會跳出一次 UAC 視窗）。
+# What this does:
+#   1. Ensure Node.js, Claude Code, git, GitHub CLI are installed (skips if already present)
+#   2. Clone (or update) this repo into ~/.wezterm
+#   3. Run install.ps1 to install WezTerm and apply WezTerm / Windows Terminal settings
+#
+# Creating the symlink requires administrator rights, so this script relaunches
+# itself elevated first (one UAC prompt).
 
 $ErrorActionPreference = "Stop"
 
@@ -18,7 +26,7 @@ $TargetDir = "$env:USERPROFILE\.wezterm"
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-	Write-Host "==> 需要系統管理員權限才能建立 symlink，重新以系統管理員身分啟動中...（請在跳出的 UAC 視窗按「是」）"
+	Write-Host "==> Administrator rights are required to create the symlink. Relaunching elevated (approve the UAC prompt)..."
 	Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "irm $BootstrapUrl | iex"
 	exit
 }
@@ -35,40 +43,40 @@ function Ensure-WingetPackage {
 		[Parameter(Mandatory)] [string]$CheckCommand
 	)
 	if (Get-Command $CheckCommand -ErrorAction SilentlyContinue) {
-		Write-Host "==> $CheckCommand 已安裝，略過"
+		Write-Host "==> $CheckCommand already installed, skipping"
 		return
 	}
-	Write-Host "==> 安裝 $Id ..."
+	Write-Host "==> Installing $Id ..."
 	winget install --id $Id -e --source winget --accept-package-agreements --accept-source-agreements
 	Refresh-Path
 }
 
-Write-Host "===== Step 1/6：確認 Node.js ====="
+Write-Host "===== Step 1/6: Node.js ====="
 Ensure-WingetPackage -Id "OpenJS.NodeJS.LTS" -CheckCommand "node"
 
-Write-Host "===== Step 2/6：確認 Claude Code ====="
+Write-Host "===== Step 2/6: Claude Code ====="
 if (Get-Command claude -ErrorAction SilentlyContinue) {
-	Write-Host "==> claude 已安裝，略過"
+	Write-Host "==> claude already installed, skipping"
 } else {
-	Write-Host "==> 安裝 Claude Code (npm install -g @anthropic-ai/claude-code) ..."
+	Write-Host "==> Installing Claude Code (npm install -g @anthropic-ai/claude-code) ..."
 	npm install -g @anthropic-ai/claude-code
 	Refresh-Path
 }
 
-Write-Host "===== Step 3/6：確認 git ====="
+Write-Host "===== Step 3/6: git ====="
 Ensure-WingetPackage -Id "Git.Git" -CheckCommand "git"
 
-Write-Host "===== Step 4/6：確認 GitHub CLI ====="
+Write-Host "===== Step 4/6: GitHub CLI ====="
 Ensure-WingetPackage -Id "GitHub.cli" -CheckCommand "gh"
 
-Write-Host "===== Step 5/6：取得設定檔 ====="
+Write-Host "===== Step 5/6: Fetch config ====="
 if (Test-Path (Join-Path $TargetDir ".git")) {
-	Write-Host "==> $TargetDir 已經是 git repo，執行 git pull 更新"
+	Write-Host "==> $TargetDir is already a git repo, running git pull"
 	Push-Location $TargetDir
 	git pull
 	Pop-Location
 } elseif (Test-Path $TargetDir) {
-	Write-Host "==> $TargetDir 已存在但不是 git repo，接上遠端並強制同步成最新版本"
+	Write-Host "==> $TargetDir exists but is not a git repo, attaching remote and force-syncing"
 	Push-Location $TargetDir
 	git init
 	git remote remove origin 2>$null
@@ -77,12 +85,12 @@ if (Test-Path (Join-Path $TargetDir ".git")) {
 	git reset --hard origin/main
 	Pop-Location
 } else {
-	Write-Host "==> Clone 到 $TargetDir"
+	Write-Host "==> Cloning into $TargetDir"
 	git clone $RepoUrl $TargetDir
 }
 
-Write-Host "===== Step 6/6：套用 WezTerm / Windows Terminal 設定 ====="
+Write-Host "===== Step 6/6: Apply WezTerm / Windows Terminal settings ====="
 & "$TargetDir\install.ps1"
 
 Write-Host ""
-Write-Host "===== 全部安裝完成！請重新開啟 WezTerm / Windows Terminal 查看效果 ====="
+Write-Host "===== All done! Reopen WezTerm / Windows Terminal to see the changes ====="
