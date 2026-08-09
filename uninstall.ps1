@@ -1,40 +1,31 @@
 ﻿# wezterm-config-windows11 反安裝腳本
 #
 # 用法：
-#   .\uninstall.ps1        還原 WezTerm / Windows Terminal / Tabby 設定、刪掉 ~/.wezterm 與 symlink，
-#                          並連同 bootstrap.ps1 安裝的 Node.js / Claude Code / git / GitHub CLI / WezTerm / Tabby
-#                          一起解除安裝，還原到接近全新機器的狀態
-#   .\uninstall.ps1 -Log   同上，並把完整終端機輸出記錄到 $HOME\wezterm-uninstall-<時間戳記>.log
+#   .\uninstall.ps1   還原 WezTerm / Windows Terminal / Tabby 設定、刪掉 ~/.wezterm 與 symlink，
+#                     並連同 bootstrap.ps1 安裝的 Node.js / Claude Code / git / GitHub CLI / WezTerm / Tabby
+#                     一起解除安裝，還原到接近全新機器的狀態
 #
 # 注意：這會移除 git / gh / Node.js 這類通用開發工具，
 # 如果這台機器上還有其他專案依賴它們，執行前請三思。
 
-param(
-	[switch]$Log
-)
-
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
 	Write-Host "==> 需要系統管理員權限才能解除安裝 GitHub CLI / Node.js 這類系統層級套件，重新以系統管理員身分啟動中...（請在跳出的 UAC 視窗按「是」）"
-	$relaunchArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $MyInvocation.MyCommand.Path)
-	if ($Log) { $relaunchArgs += "-Log" }
-	Start-Process powershell.exe -Verb RunAs -ArgumentList $relaunchArgs
+	Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $MyInvocation.MyCommand.Path
 	Write-Host "==> 已在新的系統管理員視窗接手繼續，這個視窗可以繼續留著用"
 	return
 }
 
 $ErrorActionPreference = "Continue"
 
-# 只有 -Log 時才記錄
+# 把完整終端機輸出記錄到 $HOME，方便事後回顧反安裝歷程
 $WeztermLogStartedHere = $false
-if ($Log) {
-	$LogPath = Join-Path $env:USERPROFILE ("wezterm-uninstall-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
-	try {
-		Start-Transcript -Path $LogPath -Append -ErrorAction Stop | Out-Null
-		$WeztermLogStartedHere = $true
-		Write-Host "==> 完整記錄會存到 $LogPath"
-	} catch {}
-}
+$LogPath = Join-Path $env:USERPROFILE ("wezterm-uninstall-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
+try {
+	Start-Transcript -Path $LogPath -Append -ErrorAction Stop | Out-Null
+	$WeztermLogStartedHere = $true
+	Write-Host "==> 完整記錄會存到 $LogPath"
+} catch {}
 
 try {
 	$TargetLua = "$env:USERPROFILE\.wezterm.lua"

@@ -1,17 +1,13 @@
 ﻿# wezterm-config-windows11 一鍵安裝腳本（需先手動完成 git/gh 安裝與登入，見 README.md）
 # 用法：在 clone 好這個 repo 之後，於 repo 根目錄執行 .\install.ps1
-#       加上 -Log 會把完整終端機輸出記錄到 $HOME\wezterm-install-<時間戳記>.log，預設不記錄
-param(
-	[switch]$Log
-)
 $ErrorActionPreference = "Stop"
 
-# -Log（或被 bootstrap.ps1 呼叫、WEZTERM_LOG_ACTIVE 已設定）時才記錄。
-# 如果外層已經有 transcript 在跑，就不要另外再開一份，讓外層的紀錄繼續就好，
-# 不會兩邊各寫一份重複的 log（Start-Transcript 巢狀呼叫不會擲錯，只會悄悄開
-# 第二份獨立的，所以不能靠 try/catch 判斷，要靠 WEZTERM_LOG_ACTIVE 這個旗標）
+# 把完整終端機輸出記錄到 $HOME，方便事後回顧安裝歷程。
+# 如果外層已經有 transcript 在跑（例如被 bootstrap.ps1 呼叫，會設定 WEZTERM_LOG_ACTIVE），
+# 就不要另外再開一份，讓外層的紀錄繼續就好，不會兩邊各寫一份重複的 log
+# （Start-Transcript 巢狀呼叫不會擲錯，只會悄悄開第二份獨立的，所以不能靠 try/catch 判斷）
 $WeztermLogStartedHere = $false
-if ($Log -and $env:WEZTERM_LOG_ACTIVE -ne "1") {
+if ($env:WEZTERM_LOG_ACTIVE -ne "1") {
 	$LogPath = Join-Path $env:USERPROFILE ("wezterm-install-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
 	try {
 		Start-Transcript -Path $LogPath -Append -ErrorAction Stop | Out-Null
