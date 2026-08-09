@@ -1,25 +1,18 @@
 ﻿# wezterm-config-windows11 反安裝腳本
 #
 # 用法：
-#   .\uninstall.ps1         只還原 WezTerm / Windows Terminal 設定、刪掉 ~/.wezterm 與 symlink
-#                           （保留 Node.js / Claude Code / git / GitHub CLI / WezTerm 本身）
-#   .\uninstall.ps1 -Full   連同 bootstrap.ps1 安裝的 Node.js / Claude Code / git / GitHub CLI / WezTerm
-#                           一起解除安裝，還原到接近全新機器的狀態，適合用來重測整個一鍵安裝流程
+#   .\uninstall.ps1   還原 WezTerm / Windows Terminal / Tabby 設定、刪掉 ~/.wezterm 與 symlink，
+#                     並連同 bootstrap.ps1 安裝的 Node.js / Claude Code / git / GitHub CLI / WezTerm / Tabby
+#                     一起解除安裝，還原到接近全新機器的狀態
 #
-# 注意：-Full 會移除 git / gh / Node.js 這類通用開發工具，
-# 如果這台機器上還有其他專案依賴它們，請不要用 -Full。
+# 注意：這會移除 git / gh / Node.js 這類通用開發工具，
+# 如果這台機器上還有其他專案依賴它們，執行前請三思。
 
-param(
-	[switch]$Full
-)
-
-if ($Full) {
-	$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-	if (-not $isAdmin) {
-		Write-Host "==> -Full 需要系統管理員權限才能解除安裝 GitHub CLI / Node.js 這類系統層級套件，重新以系統管理員身分啟動中...（請在跳出的 UAC 視窗按「是」）"
-		Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $MyInvocation.MyCommand.Path, "-Full"
-		exit
-	}
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+	Write-Host "==> 需要系統管理員權限才能解除安裝 GitHub CLI / Node.js 這類系統層級套件，重新以系統管理員身分啟動中...（請在跳出的 UAC 視窗按「是」）"
+	Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $MyInvocation.MyCommand.Path
+	exit
 }
 
 $ErrorActionPreference = "Continue"
@@ -110,42 +103,46 @@ if (Test-Path $TargetDir) {
 	Write-Host "==> $TargetDir 不存在，略過"
 }
 
-if ($Full) {
-	Write-Host ""
-	Write-Host "===== -Full：解除安裝 bootstrap.ps1 裝的工具 ====="
+Write-Host ""
+Write-Host "===== 解除安裝 bootstrap.ps1 裝的工具 ====="
 
-	Write-Host "-- WezTerm --"
-	winget uninstall --id wez.wezterm -e --silent --accept-source-agreements
-	Remove-Item "$env:LOCALAPPDATA\wezterm" -Recurse -Force -ErrorAction SilentlyContinue
+Write-Host "-- WezTerm --"
+winget uninstall --id wez.wezterm -e --silent --accept-source-agreements
+Remove-Item "$env:LOCALAPPDATA\wezterm" -Recurse -Force -ErrorAction SilentlyContinue
 
-	Write-Host "-- Tabby --"
-	winget uninstall --id Eugeny.Tabby -e --silent --accept-source-agreements
-
-	Write-Host "-- Claude Code (npm 套件) --"
-	if (Get-Command npm -ErrorAction SilentlyContinue) {
-		npm uninstall -g @anthropic-ai/claude-code
-	}
-
-	Write-Host "-- GitHub CLI（先登出再解除安裝）--"
-	if (Get-Command gh -ErrorAction SilentlyContinue) {
-		gh auth logout --hostname github.com 2>$null
-	}
-	winget uninstall --id GitHub.cli -e --silent --accept-source-agreements
-
-	Write-Host "-- git --"
-	winget uninstall --id Git.Git -e --silent --accept-source-agreements
-
-	Write-Host "-- Node.js --"
-	winget uninstall --id OpenJS.NodeJS.LTS -e --silent --accept-source-agreements
-
-	Write-Host ""
-	Write-Host "===== 完成，已還原成接近全新機器的狀態 ====="
-	Write-Host "提醒：winget 解除安裝不一定會清掉每個工具在使用者層級留下的殘留設定/快取；"
-	Write-Host "如果要 100% 乾淨重測，最保險的方式還是用全新的 VM 或映像檔。"
-	Write-Host "建議安裝解除完成後，開一個新的終端機視窗，確認 node/claude/git/gh/wezterm 都抓不到指令了；"
-	Write-Host "Tabby 沒有指令列工具，改用「設定」-「應用程式」確認清單裡已經沒有 Tabby。"
+Write-Host "-- Tabby --"
+# Tabby 是「使用者層級」安裝，用 winget 在系統管理員權限下解除安裝會失敗
+# （"cannot be uninstalled when running with administrator privileges"），
+# 改成直接呼叫它自帶的解除安裝程式，靜默模式繞過這個範圍衝突
+$tabbyUninstaller = "$env:LOCALAPPDATA\Programs\Tabby\Uninstall Tabby.exe"
+if (Test-Path $tabbyUninstaller) {
+	Start-Process -FilePath $tabbyUninstaller -ArgumentList "/S" -Wait
+	Write-Host "==> 已執行 Tabby 解除安裝程式"
 } else {
-	Write-Host ""
-	Write-Host "===== 完成（只清了 WezTerm/Windows Terminal/Tabby 設定與 repo） ====="
-	Write-Host "如果也要移除 Node.js / Claude Code / git / gh / WezTerm / Tabby 本身，請執行：.\uninstall.ps1 -Full"
+	Write-Host "==> 找不到 $tabbyUninstaller，改用 winget（使用者層級套件在系統管理員權限下可能無法移除）"
+	winget uninstall --id Eugeny.Tabby -e --silent --accept-source-agreements
 }
+
+Write-Host "-- Claude Code (npm 套件) --"
+if (Get-Command npm -ErrorAction SilentlyContinue) {
+	npm uninstall -g @anthropic-ai/claude-code
+}
+
+Write-Host "-- GitHub CLI（先登出再解除安裝）--"
+if (Get-Command gh -ErrorAction SilentlyContinue) {
+	gh auth logout --hostname github.com 2>$null
+}
+winget uninstall --id GitHub.cli -e --silent --accept-source-agreements
+
+Write-Host "-- git --"
+winget uninstall --id Git.Git -e --silent --accept-source-agreements
+
+Write-Host "-- Node.js --"
+winget uninstall --id OpenJS.NodeJS.LTS -e --silent --accept-source-agreements
+
+Write-Host ""
+Write-Host "===== 完成，已還原成接近全新機器的狀態 ====="
+Write-Host "提醒：winget 解除安裝不一定會清掉每個工具在使用者層級留下的殘留設定/快取；"
+Write-Host "如果要 100% 乾淨重測，最保險的方式還是用全新的 VM 或映像檔。"
+Write-Host "建議解除完成後，開一個新的終端機視窗，確認 node/claude/git/gh/wezterm 都抓不到指令了；"
+Write-Host "Tabby 沒有指令列工具，改用「設定」-「應用程式」確認清單裡已經沒有 Tabby。"

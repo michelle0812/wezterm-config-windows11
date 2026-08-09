@@ -102,23 +102,16 @@ Tabby 沒有指令列工具可以驗證版本，改用「設定」-「應用程�
 
 ## 反安裝 / 重新安裝
 
-如果裝壞了，或想清乾淨重新測試一鍵安裝流程，用 `uninstall.ps1`：
+如果裝壞了，或想清乾淨重新測試一鍵安裝流程，用 `uninstall.ps1`。這個腳本**一律做完整反安裝**：不只還原 WezTerm / Windows Terminal / Tabby 設定、刪掉 `~/.wezterm` 與 symlink，還會連同 `bootstrap.ps1` 裝的 Node.js / Claude Code / git / GitHub CLI / WezTerm / Tabby 一起解除安裝，還原到接近全新機器的狀態（需要系統管理員權限，沒有的話腳本會自動跳 UAC 視窗要求）：
 
 ```powershell
 cd "$env:USERPROFILE\.wezterm"
-
-# 只還原 WezTerm / Windows Terminal / Tabby 設定、刪掉 ~/.wezterm 與 symlink
-# 保留 Node.js / Claude Code / git / GitHub CLI / WezTerm / Tabby 本身
 .\uninstall.ps1
-
-# 連同 bootstrap.ps1 裝的 Node.js / Claude Code / git / GitHub CLI / WezTerm / Tabby
-# 一起解除安裝，還原到接近全新機器的狀態
-.\uninstall.ps1 -Full
 ```
 
 清完之後，直接重跑一鍵安裝那行指令（見最上方）即可從頭再測一次。
 
-**注意**：`-Full` 會移除 git / gh / Node.js 這類通用開發工具，如果這台機器上還有其他專案依賴它們，不要用 `-Full`；另外 winget 解除安裝不保證清掉所有使用者層級的殘留設定/快取，要 100% 乾淨最保險的方式還是用全新的 VM 或映像檔測試。
+**注意**：這會移除 git / gh / Node.js 這類通用開發工具，如果這台機器上還有其他專案依賴它們，執行前請三思；另外 winget 解除安裝不保證清掉所有使用者層級的殘留設定/快取，要 100% 乾淨最保險的方式還是用全新的 VM 或映像檔測試。
 
 ## 已知限制
 
@@ -127,6 +120,7 @@ cd "$env:USERPROFILE\.wezterm"
 - **Windows Terminal 關閉分頁沒有確認提示**：`Ctrl+W` 會直接關閉分頁，Windows Terminal 目前沒有提供像 WezTerm `confirm = true` 那種單一分頁關閉前跳提示的功能。
 - **Tabby 的模糊只有開關，沒有強度**：Windows 上是透過 `DwmEnableBlurBehindWindow` 實作，只能開/關，無法像有些應用一樣調整模糊程度；`bin/setup-tabby.ps1` 固定套用 `opacity: 0.9` + `vibrancy: true`。
 - **`bin/setup-tabby.ps1` 需要 `powershell-yaml` 模組**：因為 Tabby 設定檔是 YAML 而不是 JSON（Windows PowerShell 5.1 沒有內建的 `ConvertFrom-Yaml`），腳本第一次執行時會自動從 PSGallery 安裝這個模組。
+- **Tabby 反安裝不能用系統管理員權限的 winget**：Tabby 是使用者層級安裝，`winget uninstall` 在系統管理員權限的 shell 裡會報 "cannot be uninstalled when running with administrator privileges"；`uninstall.ps1` 改成直接呼叫 `%LOCALAPPDATA%\Programs\Tabby\Uninstall Tabby.exe /S` 繞過這個限制。
 
 ## 檔案結構
 
@@ -134,7 +128,7 @@ cd "$env:USERPROFILE\.wezterm"
 .wezterm/
 ├── bootstrap.ps1                  -- 全自動一鍵安裝腳本（裝好 Node.js/Claude Code/git/gh，clone 好之後自動接著跑 install.ps1）
 ├── install.ps1                    -- WezTerm/設定安裝腳本（步驟 4 用這個，也會被 bootstrap.ps1 自動呼叫）
-├── uninstall.ps1                  -- 反安裝腳本（清掉設定，加 -Full 連同裝的工具一起移除）
+├── uninstall.ps1                  -- 反安裝腳本（一律完整反安裝：清掉設定，連同裝的工具一起移除）
 ├── loader.lua                     -- 依平台載入對應設定，會被 symlink 成 ~/.wezterm.lua
 ├── common.lua                     -- 跨平台共用設定（1984 Dark 配色 + 透明度）
 ├── windows/wezterm.lua            -- Windows 版 WezTerm 設定
