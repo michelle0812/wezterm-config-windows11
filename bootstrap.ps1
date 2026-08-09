@@ -28,7 +28,8 @@ $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIden
 if (-not $isAdmin) {
 	Write-Host "==> Administrator rights are required to create the symlink. Relaunching elevated (approve the UAC prompt)..."
 	Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "irm $BootstrapUrl | iex"
-	exit
+	Write-Host "==> Continuing in the new elevated window; this one is done and can stay open."
+	return
 }
 
 # Record the full console output to $HOME so the install history can be reviewed later.

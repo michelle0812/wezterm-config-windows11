@@ -12,7 +12,8 @@ $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIden
 if (-not $isAdmin) {
 	Write-Host "==> 需要系統管理員權限才能解除安裝 GitHub CLI / Node.js 這類系統層級套件，重新以系統管理員身分啟動中...（請在跳出的 UAC 視窗按「是」）"
 	Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $MyInvocation.MyCommand.Path
-	exit
+	Write-Host "==> 已在新的系統管理員視窗接手繼續，這個視窗可以繼續留著用"
+	return
 }
 
 $ErrorActionPreference = "Continue"
