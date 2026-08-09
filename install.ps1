@@ -11,10 +11,15 @@ function Refresh-Path {
 function Ensure-WingetPackage {
 	param(
 		[Parameter(Mandatory)] [string]$Id,
-		[Parameter(Mandatory)] [string]$CheckCommand
+		[string]$CheckCommand,
+		[string]$CheckPath
 	)
-	if (Get-Command $CheckCommand -ErrorAction SilentlyContinue) {
+	if ($CheckCommand -and (Get-Command $CheckCommand -ErrorAction SilentlyContinue)) {
 		Write-Host "==> $CheckCommand 已安裝，略過"
+		return
+	}
+	if ($CheckPath -and (Test-Path $CheckPath)) {
+		Write-Host "==> 已安裝於 $CheckPath，略過"
 		return
 	}
 	Write-Host "==> 安裝 $Id ..."
@@ -22,22 +27,29 @@ function Ensure-WingetPackage {
 	Refresh-Path
 }
 
-Write-Host "===== Step 1/4：確認 Git ====="
+Write-Host "===== Step 1/5：確認 Git ====="
 Ensure-WingetPackage -Id "Git.Git" -CheckCommand "git"
 
-Write-Host "===== Step 2/4：確認 GitHub CLI ====="
+Write-Host "===== Step 2/5：確認 GitHub CLI ====="
 Ensure-WingetPackage -Id "GitHub.cli" -CheckCommand "gh"
 
-Write-Host "===== Step 3/4：安裝 WezTerm ====="
+Write-Host "===== Step 3/5：安裝 WezTerm ====="
 Ensure-WingetPackage -Id "wez.wezterm" -CheckCommand "wezterm"
 Refresh-Path
 
-Write-Host "===== Step 4/4：套用設定 ====="
+Write-Host "===== Step 4/5：安裝 Tabby ====="
+# Tabby 不會把指令列工具註冊進 PATH，用安裝路徑判斷是否已安裝
+Ensure-WingetPackage -Id "Eugeny.Tabby" -CheckPath "$env:LOCALAPPDATA\Programs\Tabby\Tabby.exe"
+
+Write-Host "===== Step 5/5：套用設定 ====="
 Write-Host "-- WezTerm (symlink ~/.wezterm.lua) --"
 & "$PSScriptRoot\bin\setup.ps1"
 
 Write-Host "-- Windows Terminal / PowerShell --"
 & "$PSScriptRoot\bin\setup-windows-terminal.ps1"
+
+Write-Host "-- Tabby --"
+& "$PSScriptRoot\bin\setup-tabby.ps1"
 
 Write-Host ""
 Write-Host "===== 安裝完成 ====="

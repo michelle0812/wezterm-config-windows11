@@ -49,6 +49,24 @@ foreach ($settingsPath in $WtSettingsPaths) {
 	}
 }
 
+Write-Host "===== 還原 Tabby 設定 ====="
+$TabbyConfigPath = "$env:APPDATA\tabby\config.yaml"
+if (Test-Path $TabbyConfigPath) {
+	$dir = Split-Path $TabbyConfigPath -Parent
+	$leaf = Split-Path $TabbyConfigPath -Leaf
+	$backups = Get-ChildItem -Path $dir -Filter "$leaf.bak.*" -ErrorAction SilentlyContinue | Sort-Object Name
+	if ($backups) {
+		$earliest = $backups[0]
+		Copy-Item $earliest.FullName $TabbyConfigPath -Force
+		Write-Host "==> 已還原成最早的備份: $($earliest.Name)"
+		$backups | Remove-Item -Force
+		Write-Host "==> 已清掉所有備份檔"
+	} else {
+		Write-Host "==> $TabbyConfigPath 沒有備份，略過（可能是全新安裝，直接刪除）"
+		Remove-Item $TabbyConfigPath -Force -ErrorAction SilentlyContinue
+	}
+}
+
 Write-Host "===== 還原開始選單「Windows PowerShell」捷徑的起始位置 ====="
 $startMenuShortcuts = @(
 	"$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Windows PowerShell\Windows PowerShell.lnk",
@@ -100,6 +118,9 @@ if ($Full) {
 	winget uninstall --id wez.wezterm -e --silent --accept-source-agreements
 	Remove-Item "$env:LOCALAPPDATA\wezterm" -Recurse -Force -ErrorAction SilentlyContinue
 
+	Write-Host "-- Tabby --"
+	winget uninstall --id Eugeny.Tabby -e --silent --accept-source-agreements
+
 	Write-Host "-- Claude Code (npm 套件) --"
 	if (Get-Command npm -ErrorAction SilentlyContinue) {
 		npm uninstall -g @anthropic-ai/claude-code
@@ -121,9 +142,10 @@ if ($Full) {
 	Write-Host "===== 完成，已還原成接近全新機器的狀態 ====="
 	Write-Host "提醒：winget 解除安裝不一定會清掉每個工具在使用者層級留下的殘留設定/快取；"
 	Write-Host "如果要 100% 乾淨重測，最保險的方式還是用全新的 VM 或映像檔。"
-	Write-Host "建議安裝解除完成後，開一個新的終端機視窗，確認 node/claude/git/gh/wezterm 都抓不到指令了。"
+	Write-Host "建議安裝解除完成後，開一個新的終端機視窗，確認 node/claude/git/gh/wezterm 都抓不到指令了；"
+	Write-Host "Tabby 沒有指令列工具，改用「設定」-「應用程式」確認清單裡已經沒有 Tabby。"
 } else {
 	Write-Host ""
-	Write-Host "===== 完成（只清了 WezTerm/Windows Terminal 設定與 repo） ====="
-	Write-Host "如果也要移除 Node.js / Claude Code / git / gh / WezTerm 本身，請執行：.\uninstall.ps1 -Full"
+	Write-Host "===== 完成（只清了 WezTerm/Windows Terminal/Tabby 設定與 repo） ====="
+	Write-Host "如果也要移除 Node.js / Claude Code / git / gh / WezTerm / Tabby 本身，請執行：.\uninstall.ps1 -Full"
 }
