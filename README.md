@@ -85,6 +85,14 @@ cd "$env:USERPROFILE\.wezterm"
 
 ### 步驟 5：驗證
 
+先確認指令行抓得到 WezTerm（跟步驟 1 驗證 node/claude/git/gh 是同樣道理，只是 WezTerm 是這一步才裝的）：
+
+```powershell
+wezterm --version
+```
+
+再實際打開來看效果：
+
 - 開 WezTerm：背景應該是透明的（`window_background_opacity = 0.9`），`Ctrl+T`/`Ctrl+W`/`Ctrl+1~9` 應該能開新分頁/關閉分頁/切換分頁
 - 開 Windows Terminal 的 PowerShell profile：背景也應該是透明的，一樣有 `Ctrl+T`/`Ctrl+W`/`Ctrl+1~9`
 
