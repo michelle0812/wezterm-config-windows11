@@ -26,9 +26,9 @@ $TargetDir = "$env:USERPROFILE\.wezterm"
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-	Write-Host "==> Administrator rights are required to create the symlink. Relaunching elevated (approve the UAC prompt)..."
+	Write-Host "==> Administrator rights are needed to create the symlink. A Windows UAC prompt will pop up - click Yes to continue."
 	Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "irm $BootstrapUrl | iex"
-	Write-Host "==> Continuing in the new elevated window; this one is done and can stay open."
+	Write-Host "==> Setup is continuing in the new administrator window that just opened. This window is done - feel free to close it or leave it open."
 	return
 }
 
