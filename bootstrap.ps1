@@ -31,66 +31,84 @@ if (-not $isAdmin) {
 	exit
 }
 
-function Refresh-Path {
-	$machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-	$userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-	$env:Path = "$machinePath;$userPath"
-}
+# Record the full console output to $HOME so the install history can be reviewed later.
+# install.ps1 (invoked in Step 6 below) tries to start its own transcript too; since a
+# transcript is already running by then, that attempt no-ops and this one keeps logging
+# everything through to the end.
+$WeztermLogStartedHere = $false
+$LogPath = Join-Path $env:USERPROFILE ("wezterm-install-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
+try {
+	Start-Transcript -Path $LogPath -Append -ErrorAction Stop | Out-Null
+	$WeztermLogStartedHere = $true
+	Write-Host "==> Logging full output to $LogPath"
+} catch {}
 
-function Ensure-WingetPackage {
-	param(
-		[Parameter(Mandatory)] [string]$Id,
-		[Parameter(Mandatory)] [string]$CheckCommand
-	)
-	if (Get-Command $CheckCommand -ErrorAction SilentlyContinue) {
-		Write-Host "==> $CheckCommand already installed, skipping"
-		return
+try {
+	function Refresh-Path {
+		$machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+		$userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+		$env:Path = "$machinePath;$userPath"
 	}
-	Write-Host "==> Installing $Id ..."
-	winget install --id $Id -e --source winget --accept-package-agreements --accept-source-agreements
-	Refresh-Path
+
+	function Ensure-WingetPackage {
+		param(
+			[Parameter(Mandatory)] [string]$Id,
+			[Parameter(Mandatory)] [string]$CheckCommand
+		)
+		if (Get-Command $CheckCommand -ErrorAction SilentlyContinue) {
+			Write-Host "==> $CheckCommand already installed, skipping"
+			return
+		}
+		Write-Host "==> Installing $Id ..."
+		winget install --id $Id -e --source winget --accept-package-agreements --accept-source-agreements
+		Refresh-Path
+	}
+
+	Write-Host "===== Step 1/6: Node.js ====="
+	Ensure-WingetPackage -Id "OpenJS.NodeJS.LTS" -CheckCommand "node"
+
+	Write-Host "===== Step 2/6: Claude Code ====="
+	if (Get-Command claude -ErrorAction SilentlyContinue) {
+		Write-Host "==> claude already installed, skipping"
+	} else {
+		Write-Host "==> Installing Claude Code (npm install -g @anthropic-ai/claude-code) ..."
+		npm install -g @anthropic-ai/claude-code
+		Refresh-Path
+	}
+
+	Write-Host "===== Step 3/6: git ====="
+	Ensure-WingetPackage -Id "Git.Git" -CheckCommand "git"
+
+	Write-Host "===== Step 4/6: GitHub CLI ====="
+	Ensure-WingetPackage -Id "GitHub.cli" -CheckCommand "gh"
+
+	Write-Host "===== Step 5/6: Fetch config ====="
+	if (Test-Path (Join-Path $TargetDir ".git")) {
+		Write-Host "==> $TargetDir is already a git repo, running git pull"
+		Push-Location $TargetDir
+		git pull
+		Pop-Location
+	} elseif (Test-Path $TargetDir) {
+		Write-Host "==> $TargetDir exists but is not a git repo, attaching remote and force-syncing"
+		Push-Location $TargetDir
+		git init
+		git remote remove origin 2>$null
+		git remote add origin $RepoUrl
+		git fetch origin main
+		git reset --hard origin/main
+		Pop-Location
+	} else {
+		Write-Host "==> Cloning into $TargetDir"
+		git clone $RepoUrl $TargetDir
+	}
+
+	Write-Host "===== Step 6/6: Apply WezTerm / Windows Terminal settings ====="
+	& "$TargetDir\install.ps1"
+
+	Write-Host ""
+	Write-Host "===== All done! Reopen WezTerm / Windows Terminal to see the changes ====="
+} finally {
+	if ($WeztermLogStartedHere) {
+		Stop-Transcript | Out-Null
+	}
 }
-
-Write-Host "===== Step 1/6: Node.js ====="
-Ensure-WingetPackage -Id "OpenJS.NodeJS.LTS" -CheckCommand "node"
-
-Write-Host "===== Step 2/6: Claude Code ====="
-if (Get-Command claude -ErrorAction SilentlyContinue) {
-	Write-Host "==> claude already installed, skipping"
-} else {
-	Write-Host "==> Installing Claude Code (npm install -g @anthropic-ai/claude-code) ..."
-	npm install -g @anthropic-ai/claude-code
-	Refresh-Path
-}
-
-Write-Host "===== Step 3/6: git ====="
-Ensure-WingetPackage -Id "Git.Git" -CheckCommand "git"
-
-Write-Host "===== Step 4/6: GitHub CLI ====="
-Ensure-WingetPackage -Id "GitHub.cli" -CheckCommand "gh"
-
-Write-Host "===== Step 5/6: Fetch config ====="
-if (Test-Path (Join-Path $TargetDir ".git")) {
-	Write-Host "==> $TargetDir is already a git repo, running git pull"
-	Push-Location $TargetDir
-	git pull
-	Pop-Location
-} elseif (Test-Path $TargetDir) {
-	Write-Host "==> $TargetDir exists but is not a git repo, attaching remote and force-syncing"
-	Push-Location $TargetDir
-	git init
-	git remote remove origin 2>$null
-	git remote add origin $RepoUrl
-	git fetch origin main
-	git reset --hard origin/main
-	Pop-Location
-} else {
-	Write-Host "==> Cloning into $TargetDir"
-	git clone $RepoUrl $TargetDir
-}
-
-Write-Host "===== Step 6/6: Apply WezTerm / Windows Terminal settings ====="
-& "$TargetDir\install.ps1"
-
-Write-Host ""
-Write-Host "===== All done! Reopen WezTerm / Windows Terminal to see the changes ====="

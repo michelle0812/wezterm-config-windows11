@@ -100,6 +100,15 @@ Tabby 沒有指令列工具可以驗證版本，改用「設定」-「應用程�
 - 開 Tabby：配色是 1984 Dark、背景透明度 0.9 且開啟模糊，`Ctrl+T`/`Ctrl+W`/`Ctrl+1~9` 一樣能開新分頁/關閉分頁/切換分頁
 - 從開始選單搜尋 PowerShell，右鍵選「以系統管理員身分執行」：應該直接進入使用者資料夾（`C:\Users\<你的帳號>`），而不是 `C:\Windows\System32`
 
+## 安裝歷程紀錄
+
+`bootstrap.ps1`（一鍵安裝）、`install.ps1`、`uninstall.ps1` 都會用 `Start-Transcript` 把完整的終端機輸出記錄下來，存到 `$HOME` 底下，檔名帶時間戳記，不會互相覆蓋：
+
+- 安裝：`~\wezterm-install-yyyyMMdd-HHmmss.log`
+- 反安裝：`~\wezterm-uninstall-yyyyMMdd-HHmmss.log`
+
+透過 `bootstrap.ps1` 跑一鍵安裝時，`install.ps1` 是被 `bootstrap.ps1` 呼叫的，兩者共用同一份 `wezterm-install-*.log`（`install.ps1` 偵測到 transcript 已經在跑就不會另外開一份）；直接單獨執行 `install.ps1` 才會產生自己的 log。
+
 ## 反安裝 / 重新安裝
 
 如果裝壞了，或想清乾淨重新測試一鍵安裝流程，用 `uninstall.ps1`。這個腳本**一律做完整反安裝**：不只還原 WezTerm / Windows Terminal / Tabby 設定、刪掉 `~/.wezterm` 與 symlink，還會連同 `bootstrap.ps1` 裝的 Node.js / Claude Code / git / GitHub CLI / WezTerm / Tabby 一起解除安裝，還原到接近全新機器的狀態（需要系統管理員權限，沒有的話腳本會自動跳 UAC 視窗要求）：
